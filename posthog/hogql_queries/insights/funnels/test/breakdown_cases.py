@@ -1357,7 +1357,7 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             assert not_in_cohort_results[1]["count"] == 1
             assert not_in_cohort_results[0]["breakdown_value"] == NOT_IN_COHORT_ID
 
-        def test_funnel_cohort_breakdown_shows_empty_complement_when_all_in_cohort(self):
+        def test_funnel_cohort_breakdown_shows_empty_not_in_cohort_when_all_in_cohort(self):
             _create_person(
                 distinct_ids=["person1"],
                 team_id=self.team.pk,
@@ -1417,12 +1417,12 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             assert cohort_results[0]["count"] == 2
             assert cohort_results[1]["count"] == 1
 
-            # complement group exists but is empty
+            # "not in cohort" group exists but is empty
             assert not_in_cohort_results[0]["count"] == 0
             assert not_in_cohort_results[1]["count"] == 0
             assert not_in_cohort_results[0]["breakdown_value"] == NOT_IN_COHORT_ID
 
-        def test_funnel_cohort_breakdown_no_complement_with_all(self):
+        def test_funnel_cohort_breakdown_no_not_in_cohort_with_all(self):
             _create_person(
                 distinct_ids=["person1"],
                 team_id=self.team.pk,
@@ -1455,12 +1455,12 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
 
             breakdown_labels = {r[0]["breakdown"] for r in results}
-            # "all" already covers everyone, so no "not in cohort" complement should be added
+            # "all" already covers everyone, so no "not in cohort" group should be added
             assert "Not in test_cohort" not in breakdown_labels
             assert "all users" in breakdown_labels
             assert "test_cohort" in breakdown_labels
 
-        def test_funnel_cohort_breakdown_no_complement_with_multiple_cohorts(self):
+        def test_funnel_cohort_breakdown_no_not_in_cohort_with_multiple_cohorts(self):
             _create_person(
                 distinct_ids=["person1"],
                 team_id=self.team.pk,
@@ -1499,7 +1499,7 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
 
             breakdown_labels = {r[0]["breakdown"] for r in results}
-            # Multi-cohort: no complement added (overlap makes it ambiguous)
+            # Multi-cohort: no "not in cohort" group added (overlap makes it ambiguous)
             assert not any(label.startswith("Not in ") for label in breakdown_labels)
             assert "cohort_a" in breakdown_labels
             assert "cohort_b" in breakdown_labels

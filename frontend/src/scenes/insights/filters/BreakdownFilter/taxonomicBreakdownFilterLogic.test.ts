@@ -390,6 +390,40 @@ describe('taxonomicBreakdownFilterLogic', () => {
                 isAddBreakdownDisabled: false,
             })
         })
+
+        it('funnels limit cohort breakdown to one', async () => {
+            logic = taxonomicBreakdownFilterLogic({
+                insightProps,
+                breakdownFilter: {
+                    breakdown_type: 'cohort',
+                    breakdown: [1],
+                },
+                isTrends: false,
+                updateBreakdownFilter,
+                updateDisplay,
+            })
+            logic.mount()
+            await expectLogic(logic).toMatchValues({
+                isAddBreakdownDisabled: true,
+            })
+        })
+
+        it('funnels allow first cohort breakdown', async () => {
+            logic = taxonomicBreakdownFilterLogic({
+                insightProps,
+                breakdownFilter: {
+                    breakdown_type: 'cohort',
+                    breakdown: [],
+                },
+                isTrends: false,
+                updateBreakdownFilter,
+                updateDisplay,
+            })
+            logic.mount()
+            await expectLogic(logic).toMatchValues({
+                isAddBreakdownDisabled: false,
+            })
+        })
     })
 
     describe('multiple breakdowns', () => {
@@ -708,6 +742,43 @@ describe('taxonomicBreakdownFilterLogic', () => {
             })
 
             expect(updateBreakdownFilter.mock.calls[0][0]).toHaveProperty('breakdowns', undefined)
+        })
+
+        it('replaceBreakdown replaces a cohort instead of appending', async () => {
+            const updateBreakdownFilter = jest.fn()
+            logic = taxonomicBreakdownFilterLogic({
+                insightProps,
+                breakdownFilter: {
+                    breakdown_type: 'cohort',
+                    breakdown: [1],
+                },
+                isTrends: false,
+                updateBreakdownFilter,
+                updateDisplay,
+            })
+            logic.mount()
+            const group: TaxonomicFilterGroup = taxonomicGroupFor(
+                TaxonomicFilterGroupType.CohortsWithAllUsers,
+                undefined
+            )
+
+            await expectLogic(logic, () => {
+                logic.actions.replaceBreakdown(
+                    {
+                        type: 'cohort',
+                        value: 1,
+                    },
+                    {
+                        group: group,
+                        value: 2,
+                    }
+                )
+            }).toFinishListeners()
+
+            expect(updateBreakdownFilter).toHaveBeenCalledWith({
+                breakdown: [2],
+                breakdown_type: 'cohort',
+            })
         })
 
         it('resets the map view when adding a next breakdown', async () => {

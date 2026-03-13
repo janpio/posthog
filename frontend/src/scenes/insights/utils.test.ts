@@ -491,6 +491,37 @@ describe('formatBreakdownLabel()', () => {
         expect(formatter).toHaveBeenNthCalledWith(2, 'test', 662, 'group', 1)
     })
 
+    it('handles not-in-cohort complement with cohort name', () => {
+        const NOT_IN_COHORT_ID = 2 ** 52
+        const breakdownFilter: BreakdownFilter = {
+            breakdown: [cohort.id],
+            breakdown_type: 'cohort',
+        }
+        expect(formatBreakdownLabel(NOT_IN_COHORT_ID, breakdownFilter, [cohort as any], identity)).toEqual(
+            'Not in some cohort'
+        )
+    })
+
+    it('handles not-in-cohort complement without matching cohort', () => {
+        const NOT_IN_COHORT_ID = 2 ** 52
+        const breakdownFilter: BreakdownFilter = {
+            breakdown: [999],
+            breakdown_type: 'cohort',
+        }
+        expect(formatBreakdownLabel(NOT_IN_COHORT_ID, breakdownFilter, [], identity)).toEqual('Not in cohort')
+    })
+
+    it('handles not-in-cohort complement as stringified number', () => {
+        const NOT_IN_COHORT_ID = 2 ** 52
+        const breakdownFilter: BreakdownFilter = {
+            breakdown: [cohort.id],
+            breakdown_type: 'cohort',
+        }
+        expect(formatBreakdownLabel(String(NOT_IN_COHORT_ID), breakdownFilter, [cohort as any], identity)).toEqual(
+            'Not in some cohort'
+        )
+    })
+
     it('handles breakdown cohort that has no breakdown_type', () => {
         const breakdownFilter: BreakdownFilter = {
             breakdowns: [

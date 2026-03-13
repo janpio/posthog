@@ -150,7 +150,7 @@ class FunnelBase(ABC):
         return list(cohorts)
 
     @cached_property
-    def _complement_cohort_name(self) -> str | None:
+    def _not_in_cohort_label(self) -> str | None:
         """Return the cohort name for 'Not in X' labels in single-cohort breakdowns."""
         if len(self.breakdown_cohorts) == 1:
             return self.breakdown_cohorts[0].name
@@ -207,7 +207,7 @@ class FunnelBase(ABC):
                             get_breakdown_cohort_name(
                                 breakdown_value,
                                 self.context.team,
-                                complement_cohort_name=self._complement_cohort_name,
+                                not_in_cohort_name=self._not_in_cohort_label,
                             )
                             if self.context.breakdownFilter.breakdown_type == "cohort"
                             else breakdown_value
@@ -363,23 +363,22 @@ class FunnelBase(ABC):
             ]
             cohort_queries.append(all_query)
 
-        # For single-cohort breakdowns, add a complement group for users not in the cohort.
-        # This gives a clean binary split: "in cohort" vs "not in cohort".
-        # Skipped for multi-cohort breakdowns (overlap makes the complement ambiguous)
-        # and when "all" is present (it already covers everyone).
+        # Single cohort: add "not in cohort" group
         has_all = isinstance(breakdown, list) and "all" in breakdown
         if len(self.breakdown_cohorts) == 1 and not has_all:
             cohort = self.breakdown_cohorts[0]
-            complement_query = FunnelEventQuery(context=self.context).to_query(skip_step_filter=True)
-            complement_query.select = [
+            not_in_cohort_query = FunnelEventQuery(context=self.context).to_query(skip_step_filter=True)
+            not_in_cohort_query.select = [
                 ast.Alias(alias="cohort_person_id", expr=ast.Field(chain=["person_id"])),
                 ast.Alias(alias="value", expr=ast.Constant(value=NOT_IN_COHORT_ID)),
             ]
             not_in_filter = parse_expr(f"not(person_id in cohort {cohort.pk})")
-            complement_query.where = (
-                ast.And(exprs=[complement_query.where, not_in_filter]) if complement_query.where else not_in_filter
+            not_in_cohort_query.where = (
+                ast.And(exprs=[not_in_cohort_query.where, not_in_filter])
+                if not_in_cohort_query.where
+                else not_in_filter
             )
-            cohort_queries.append(complement_query)
+            cohort_queries.append(not_in_cohort_query)
 
         return ast.JoinExpr(
             join_type="INNER JOIN",

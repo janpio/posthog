@@ -1486,7 +1486,7 @@ class TestFunnelTrendsUDF(ClickhouseTestMixin, APIBaseTest):
         # user_three is not in the cohort and converts on day 3
         assert not_in_cohort_result["data"] == [0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-    def test_funnel_trend_cohort_breakdown_empty_complement(self):
+    def test_funnel_trend_cohort_breakdown_empty_not_in_cohort(self):
         _create_person(distinct_ids=["user_one"], team=self.team, properties={"key": "value"})
         _create_person(distinct_ids=["user_two"], team=self.team, properties={"key": "value"})
 
@@ -1530,7 +1530,7 @@ class TestFunnelTrendsUDF(ClickhouseTestMixin, APIBaseTest):
         query = cast(FunnelsQuery, filter_to_query(filters))
         results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
 
-        # Even though everyone is in the cohort, the complement should still appear
+        # Even though everyone is in the cohort, the "not in cohort" group should still appear
         assert len(results) == 2
 
         breakdown_values = {r["breakdown_value"] for r in results}

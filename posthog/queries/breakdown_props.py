@@ -385,12 +385,12 @@ def _parse_breakdown_cohorts(cohorts: list[Cohort], hogql_context: HogQLContext)
     return queries, params
 
 
-def get_breakdown_cohort_name(cohort_id: int, team: Team, complement_cohort_name: str | None = None) -> str:
+def get_breakdown_cohort_name(cohort_id: int, team: Team, not_in_cohort_name: str | None = None) -> str:
     if cohort_id == ALL_USERS_COHORT_ID:
         return "all users"
     elif cohort_id == NOT_IN_COHORT_ID:
-        if complement_cohort_name:
-            return f"Not in {complement_cohort_name}"
+        if not_in_cohort_name:
+            return f"Not in {not_in_cohort_name}"
         return "Not in cohort"
     else:
         return Cohort.objects.get(pk=cohort_id, team__project_id=team.project_id).name

@@ -454,7 +454,6 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
                     })
                 }
             } else if (breakdownType === 'cohort') {
-                // For cohort breakdowns (funnels), replace the previous cohort in the array
                 const newCohortBreakdown = values.breakdownCohortArray.map((cohort) =>
                     cohort === previousBreakdown.value ? breakdownValue : cohort
                 ) as (string | number)[]
