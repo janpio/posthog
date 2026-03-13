@@ -1476,11 +1476,15 @@ class TestFunnelTrendsUDF(ClickhouseTestMixin, APIBaseTest):
         query = cast(FunnelsQuery, filter_to_query(filters))
         results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
 
-        self.assertEqual(len(results), 1)
-        self.assertEqual(
-            results[0]["data"],
-            [100.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        )
+        assert len(results) == 2
+
+        cohort_result = next(r for r in results if r["breakdown_value"] == "test_cohort")
+        not_in_cohort_result = next(r for r in results if r["breakdown_value"] == "not in cohort")
+
+        # user_one and user_two are in the cohort and both convert
+        assert cohort_result["data"] == [100.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        # user_three is not in the cohort and converts on day 3
+        assert not_in_cohort_result["data"] == [0.0, 0.0, 100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @snapshot_clickhouse_queries
     def test_timezones_trends(self):

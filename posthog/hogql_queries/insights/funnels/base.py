@@ -334,12 +334,6 @@ class FunnelBase(ABC):
     def _get_cohort_breakdown_join(self) -> ast.JoinExpr:
         breakdown = self.context.breakdown
 
-        if len(self.breakdown_cohorts) > 1:
-            raise ValidationError(
-                "Cohort breakdown supports only a single cohort. "
-                "The results automatically include a 'not in cohort' group for comparison."
-            )
-
         cohort_queries: list[ast.SelectQuery] = []
 
         for cohort in self.breakdown_cohorts:
@@ -358,25 +352,22 @@ class FunnelBase(ABC):
             ]
             cohort_queries.append(all_query)
 
-        # Add a complement group for users not in any of the specified cohorts.
-        # Uses a simple persons query with NOT IN cohort filters rather than a full
-        # FunnelEventQuery, since we only need person_ids and this is more efficient.
-        if self.breakdown_cohorts:
-            cohort_not_in_conditions = [
-                parse_expr(f"not(id in cohort {cohort.pk})") for cohort in self.breakdown_cohorts
-            ]
-            not_in_filter = (
-                ast.And(exprs=cohort_not_in_conditions)
-                if len(cohort_not_in_conditions) > 1
-                else cohort_not_in_conditions[0]
-            )
-            complement_query = parse_select("select id as cohort_person_id, 0 as value from persons")
-            assert isinstance(complement_query, ast.SelectQuery)
+        # For single-cohort breakdowns, add a complement group for users not in the cohort.
+        # This gives a clean binary split: "in cohort" vs "not in cohort".
+        # Skipped for multi-cohort breakdowns (overlap makes the complement ambiguous)
+        # and when "all" is present (it already covers everyone).
+        has_all = isinstance(breakdown, list) and "all" in breakdown
+        if len(self.breakdown_cohorts) == 1 and not has_all:
+            cohort = self.breakdown_cohorts[0]
+            complement_query = FunnelEventQuery(context=self.context).to_query(skip_step_filter=True)
             complement_query.select = [
-                ast.Alias(alias="cohort_person_id", expr=ast.Field(chain=["id"])),
+                ast.Alias(alias="cohort_person_id", expr=ast.Field(chain=["person_id"])),
                 ast.Alias(alias="value", expr=ast.Constant(value=NOT_IN_COHORT_ID)),
             ]
-            complement_query.where = not_in_filter
+            not_in_filter = parse_expr(f"not(person_id in cohort {cohort.pk})")
+            complement_query.where = (
+                ast.And(exprs=[complement_query.where, not_in_filter]) if complement_query.where else not_in_filter
+            )
             cohort_queries.append(complement_query)
 
         return ast.JoinExpr(

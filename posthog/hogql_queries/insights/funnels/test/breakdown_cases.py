@@ -1293,7 +1293,6 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             self.assertCountEqual(self._get_actor_ids_at_step(filters, 2, cohort.pk), [])
 
         def test_funnel_cohort_breakdown_shows_not_in_cohort(self):
-            # Users not in the cohort should appear in a "not in cohort" breakdown group
             _create_person(
                 distinct_ids=["person_in_cohort"],
                 team_id=self.team.pk,
@@ -1342,25 +1341,103 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             query = cast(FunnelsQuery, filter_to_query(filters))
             results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
 
-            # Should have two breakdown groups: the cohort and "not in cohort"
-            self.assertEqual(len(results), 2)
+            assert len(results) == 2
 
             breakdown_labels = {r[0]["breakdown"] for r in results}
-            self.assertIn("test_cohort", breakdown_labels)
-            self.assertIn("not in cohort", breakdown_labels)
+            assert "test_cohort" in breakdown_labels
+            assert "not in cohort" in breakdown_labels
 
-            # Find results by breakdown
             cohort_results = next(r for r in results if r[0]["breakdown"] == "test_cohort")
             not_in_cohort_results = next(r for r in results if r[0]["breakdown"] == "not in cohort")
 
-            # person_in_cohort completed the funnel
-            self.assertEqual(cohort_results[0]["count"], 1)
-            self.assertEqual(cohort_results[1]["count"], 1)
+            assert cohort_results[0]["count"] == 1
+            assert cohort_results[1]["count"] == 1
 
-            # person_outside_cohort also completed the funnel
-            self.assertEqual(not_in_cohort_results[0]["count"], 1)
-            self.assertEqual(not_in_cohort_results[1]["count"], 1)
-            self.assertEqual(not_in_cohort_results[0]["breakdown_value"], NOT_IN_COHORT_ID)
+            assert not_in_cohort_results[0]["count"] == 1
+            assert not_in_cohort_results[1]["count"] == 1
+            assert not_in_cohort_results[0]["breakdown_value"] == NOT_IN_COHORT_ID
+
+        def test_funnel_cohort_breakdown_no_complement_with_all(self):
+            _create_person(
+                distinct_ids=["person1"],
+                team_id=self.team.pk,
+                properties={"key": "value"},
+            )
+            journeys_for(
+                {"person1": [{"event": "sign up", "timestamp": datetime(2020, 1, 2, 12)}]},
+                self.team,
+                create_people=False,
+            )
+
+            cohort = Cohort.objects.create(
+                team=self.team,
+                name="test_cohort",
+                groups=[{"properties": [{"key": "key", "value": "value", "type": "person"}]}],
+            )
+            cohort.calculate_people_ch(pending_version=0)
+
+            filters = {
+                "events": [{"id": "sign up", "order": 0}, {"id": "play movie", "order": 1}],
+                "insight": INSIGHT_FUNNELS,
+                "date_from": "2020-01-01",
+                "date_to": "2020-01-08",
+                "funnel_window_days": 7,
+                "breakdown_type": "cohort",
+                "breakdown": ["all", cohort.pk],
+            }
+
+            query = cast(FunnelsQuery, filter_to_query(filters))
+            results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
+
+            breakdown_labels = {r[0]["breakdown"] for r in results}
+            # "all" already covers everyone, so no "not in cohort" complement should be added
+            assert "not in cohort" not in breakdown_labels
+            assert "all users" in breakdown_labels
+            assert "test_cohort" in breakdown_labels
+
+        def test_funnel_cohort_breakdown_no_complement_with_multiple_cohorts(self):
+            _create_person(
+                distinct_ids=["person1"],
+                team_id=self.team.pk,
+                properties={"key": "value"},
+            )
+            journeys_for(
+                {"person1": [{"event": "sign up", "timestamp": datetime(2020, 1, 2, 12)}]},
+                self.team,
+                create_people=False,
+            )
+
+            cohort_a = Cohort.objects.create(
+                team=self.team,
+                name="cohort_a",
+                groups=[{"properties": [{"key": "key", "value": "value", "type": "person"}]}],
+            )
+            cohort_a.calculate_people_ch(pending_version=0)
+            cohort_b = Cohort.objects.create(
+                team=self.team,
+                name="cohort_b",
+                groups=[{"properties": [{"key": "key", "value": "value", "type": "person"}]}],
+            )
+            cohort_b.calculate_people_ch(pending_version=0)
+
+            filters = {
+                "events": [{"id": "sign up", "order": 0}, {"id": "play movie", "order": 1}],
+                "insight": INSIGHT_FUNNELS,
+                "date_from": "2020-01-01",
+                "date_to": "2020-01-08",
+                "funnel_window_days": 7,
+                "breakdown_type": "cohort",
+                "breakdown": [cohort_a.pk, cohort_b.pk],
+            }
+
+            query = cast(FunnelsQuery, filter_to_query(filters))
+            results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
+
+            breakdown_labels = {r[0]["breakdown"] for r in results}
+            # Multi-cohort: no complement added (overlap makes it ambiguous)
+            assert "not in cohort" not in breakdown_labels
+            assert "cohort_a" in breakdown_labels
+            assert "cohort_b" in breakdown_labels
 
         def test_basic_funnel_default_funnel_days_breakdown_event(self):
             events_by_person = {

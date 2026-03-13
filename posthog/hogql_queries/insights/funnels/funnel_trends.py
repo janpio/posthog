@@ -16,7 +16,7 @@ from posthog.hogql_queries.insights.funnels.funnel_query_context import FunnelQu
 from posthog.hogql_queries.insights.utils.utils import get_start_of_interval_hogql, get_start_of_interval_hogql_str
 from posthog.hogql_queries.utils.query_date_range import QueryDateRange
 from posthog.hogql_queries.utils.timestamp_utils import format_label_date
-from posthog.models.cohort.cohort import Cohort
+from posthog.queries.breakdown_props import get_breakdown_cohort_name
 from posthog.queries.util import correct_result_for_sampling, get_earliest_timestamp, get_interval_func_ch
 from posthog.utils import DATERANGE_MAP, relative_date_parse
 
@@ -346,13 +346,9 @@ class FunnelTrendsUDF(FunnelUDFMixin, FunnelBase):
                     isinstance(breakdown_value, list) and all(isinstance(item, str) for item in breakdown_value)
                 ):
                     serialized_result.update({"breakdown_value": (breakdown_value)})
-                else:
+                elif isinstance(breakdown_value, (int, float)):
                     serialized_result.update(
-                        {
-                            "breakdown_value": Cohort.objects.get(
-                                pk=breakdown_value, team__project_id=self.context.team.project_id
-                            ).name
-                        }
+                        {"breakdown_value": get_breakdown_cohort_name(int(breakdown_value), self.context.team)}
                     )
 
             summary.append(serialized_result)
