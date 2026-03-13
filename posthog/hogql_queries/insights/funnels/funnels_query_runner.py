@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
 
 from posthog.schema import (
-    BreakdownType,
     CachedFunnelsQueryResponse,
     FunnelsQuery,
     FunnelsQueryResponse,
@@ -141,18 +140,7 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
 
     def _should_add_not_in_cohort_group(self) -> bool:
         """Check if we need to add a 'not in cohort' group."""
-        breakdown = self.context.breakdown
-        breakdownType = self.context.breakdownType
-
-        if breakdownType != BreakdownType.COHORT:
-            return False
-
-        has_all = isinstance(breakdown, list) and "all" in breakdown
-        if has_all:
-            return False
-
-        cohorts = self.funnel_class.breakdown_cohorts
-        return len(cohorts) == 1
+        return self.funnel_class.should_add_not_in_cohort_group
 
     def _not_in_cohort_label(self) -> str:
         cohorts = self.funnel_class.breakdown_cohorts
@@ -186,23 +174,16 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
 
         empty_series: list[dict[str, Any]] = []
         for index, step in enumerate(self.context.query.series):
-            event = getattr(step, "event", None)
-            action_id = event if event is not None else getattr(step, "id", None)
-            empty_series.append(
+            serialized = self.funnel_class._serialize_step(step, 0, index)
+            serialized.update(
                 {
-                    "action_id": action_id,
-                    "name": event if event is not None else str(action_id),
-                    "custom_name": step.custom_name,
-                    "order": index,
-                    "people": [],
-                    "count": 0,
-                    "type": "events" if event is not None else "actions",
                     "average_conversion_time": None,
                     "median_conversion_time": None,
                     "breakdown": not_in_label,
                     "breakdown_value": NOT_IN_COHORT_ID,
                 }
             )
+            empty_series.append(serialized)
         results.append(empty_series)
         return results
 
