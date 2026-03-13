@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from rest_framework.request import Request
 
 from posthog.schema import (
+    BreakdownType,
     CachedFunnelsQueryResponse,
     FunnelsQuery,
     FunnelsQueryResponse,
@@ -28,6 +29,7 @@ from posthog.hogql_queries.query_runner import AnalyticsQueryRunner
 from posthog.hogql_queries.utils.query_date_range import QueryDateRange
 from posthog.models import Team
 from posthog.models.filters.mixins.utils import cached_property
+from posthog.queries.breakdown_props import NOT_IN_COHORT_ID
 
 
 class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
@@ -99,6 +101,7 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
         )
 
         results = self.funnel_class._format_results(response.results)
+        results = self._ensure_cohort_complement(results)
 
         if response.timings is not None:
             timings.extend(response.timings)
@@ -135,6 +138,92 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
             return FunnelTrendsUDF(context=self.context)
 
         return FunnelUDF(context=self.context)
+
+    def _should_add_cohort_complement(self) -> bool:
+        """Check if we need to add a 'not in cohort' complement group."""
+        breakdown = self.context.breakdown
+        breakdownType = self.context.breakdownType
+
+        if breakdownType != BreakdownType.COHORT:
+            return False
+
+        has_all = isinstance(breakdown, list) and "all" in breakdown
+        if has_all:
+            return False
+
+        cohorts = self.funnel_class.breakdown_cohorts
+        return len(cohorts) == 1
+
+    def _complement_label(self) -> str:
+        cohorts = self.funnel_class.breakdown_cohorts
+        cohort_name = cohorts[0].name if cohorts else "cohort"
+        return f"Not in {cohort_name}"
+
+    def _ensure_cohort_complement(self, results: Any) -> Any:
+        """For single-cohort breakdowns, ensure the 'not in cohort' group is always
+        present so the UI shows a clear binary split even when the complement is empty."""
+        if not self._should_add_cohort_complement():
+            return results
+
+        complement_name = self._complement_label()
+        funnelVizType = self.context.funnelsFilter.funnelVizType
+
+        if funnelVizType == FunnelVizType.TRENDS:
+            return self._ensure_trends_complement(results, complement_name)
+        elif funnelVizType == FunnelVizType.TIME_TO_CONVERT:
+            return results
+        else:
+            return self._ensure_steps_complement(results, complement_name)
+
+    def _ensure_steps_complement(
+        self, results: list[list[dict[str, Any]]], complement_name: str
+    ) -> list[list[dict[str, Any]]]:
+        existing_breakdown_values = {
+            step["breakdown_value"] for series in results for step in series if "breakdown_value" in step
+        }
+        if NOT_IN_COHORT_ID in existing_breakdown_values:
+            return results
+
+        empty_series = []
+        for index, step in enumerate(self.context.query.series):
+            empty_series.append(
+                {
+                    "action_id": step.event if hasattr(step, "event") else step.id,
+                    "name": step.event if hasattr(step, "event") else str(step.id),
+                    "custom_name": step.custom_name,
+                    "order": index,
+                    "people": [],
+                    "count": 0,
+                    "type": "events" if hasattr(step, "event") else "actions",
+                    "average_conversion_time": None,
+                    "median_conversion_time": None,
+                    "breakdown": complement_name,
+                    "breakdown_value": NOT_IN_COHORT_ID,
+                }
+            )
+        results.append(empty_series)
+        return results
+
+    def _ensure_trends_complement(self, results: list[dict[str, Any]], complement_name: str) -> list[dict[str, Any]]:
+        existing_breakdown_values = {r.get("breakdown_value") for r in results}
+        if complement_name in existing_breakdown_values:
+            return results
+
+        if not results:
+            return results
+
+        # Copy days/labels from existing result, fill data with zeros
+        template = results[0]
+        results.append(
+            {
+                "count": template.get("count", 0),
+                "data": [0] * len(template.get("data", [])),
+                "days": template.get("days", []),
+                "labels": template.get("labels", []),
+                "breakdown_value": complement_name,
+            }
+        )
+        return results
 
     @property
     def exact_timerange(self):

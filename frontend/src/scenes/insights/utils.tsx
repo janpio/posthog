@@ -387,6 +387,19 @@ export function formatBreakdownLabel(
         if (breakdown_value === 'all' || breakdown_value === 0) {
             return 'All Users'
         }
+        if (breakdown_value === NOT_IN_COHORT_ID || String(breakdown_value) === String(NOT_IN_COHORT_ID)) {
+            const selectedCohorts = Array.isArray(breakdownFilter?.breakdown) ? breakdownFilter.breakdown : []
+            const selectedCohortId = selectedCohorts.find(
+                (id) => id !== 'all' && id !== NOT_IN_COHORT_ID && String(id) !== String(NOT_IN_COHORT_ID)
+            )
+            if (selectedCohortId != null && cohorts) {
+                const cohortName = cohorts.find((c) => c.id == selectedCohortId)?.name
+                if (cohortName) {
+                    return `Not in ${cohortName}`
+                }
+            }
+            return 'Not in cohort'
+        }
         if (cohorts == null || cohorts.length === 0) {
             if (itemLabel != null) {
                 return itemLabel

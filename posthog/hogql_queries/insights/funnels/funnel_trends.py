@@ -348,7 +348,13 @@ class FunnelTrendsUDF(FunnelUDFMixin, FunnelBase):
                     serialized_result.update({"breakdown_value": (breakdown_value)})
                 elif isinstance(breakdown_value, (int, float)):
                     serialized_result.update(
-                        {"breakdown_value": get_breakdown_cohort_name(int(breakdown_value), self.context.team)}
+                        {
+                            "breakdown_value": get_breakdown_cohort_name(
+                                int(breakdown_value),
+                                self.context.team,
+                                complement_cohort_name=self._complement_cohort_name,
+                            )
+                        }
                     )
                 else:
                     serialized_result.update({"breakdown_value": str(breakdown_value)})

@@ -159,6 +159,12 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
                     return !!breakdowns && breakdowns.length >= 3
                 }
 
+                // For funnels with cohort breakdown, limit to a single cohort.
+                // The backend automatically adds a "not in" group.
+                if (breakdown_type === 'cohort' && Array.isArray(breakdown) && breakdown.length >= 1) {
+                    return true
+                }
+
                 return !Array.isArray(breakdown) && breakdown != null
             },
         ],
@@ -442,6 +448,15 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
                         breakdowns,
                     })
                 }
+            } else if (breakdownType === 'cohort') {
+                // For cohort breakdowns (funnels), replace the previous cohort in the array
+                const newCohortBreakdown = values.breakdownCohortArray.map((cohort) =>
+                    cohort === previousBreakdown.value ? breakdownValue : cohort
+                ) as (string | number)[]
+                props.updateBreakdownFilter({
+                    breakdown: newCohortBreakdown,
+                    breakdown_type: 'cohort',
+                })
             } else {
                 actions.addBreakdown(newBreakdown.value, newBreakdown.group)
             }

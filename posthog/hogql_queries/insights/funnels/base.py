@@ -149,6 +149,13 @@ class FunnelBase(ABC):
 
         return list(cohorts)
 
+    @cached_property
+    def _complement_cohort_name(self) -> str | None:
+        """Return the cohort name for 'Not in X' labels in single-cohort breakdowns."""
+        if len(self.breakdown_cohorts) == 1:
+            return self.breakdown_cohorts[0].name
+        return None
+
     def _format_results(
         self, results
     ) -> Union[FunnelTimeToConvertResults, list[dict[str, Any]], list[list[dict[str, Any]]]]:
@@ -197,7 +204,11 @@ class FunnelBase(ABC):
                 serialized_result.update(
                     {
                         "breakdown": (
-                            get_breakdown_cohort_name(breakdown_value, self.context.team)
+                            get_breakdown_cohort_name(
+                                breakdown_value,
+                                self.context.team,
+                                complement_cohort_name=self._complement_cohort_name,
+                            )
                             if self.context.breakdownFilter.breakdown_type == "cohort"
                             else breakdown_value
                         ),
