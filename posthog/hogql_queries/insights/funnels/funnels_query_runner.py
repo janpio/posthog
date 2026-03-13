@@ -138,22 +138,16 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
 
         return FunnelUDF(context=self.context)
 
-    def _should_add_not_in_cohort_group(self) -> bool:
-        """Check if we need to add a 'not in cohort' group."""
-        return self.funnel_class.should_add_not_in_cohort_group
-
-    def _not_in_cohort_label(self) -> str:
+    def _not_in_cohort_display_label(self) -> str:
         cohorts = self.funnel_class.breakdown_cohorts
         cohort_name = cohorts[0].name if cohorts else "cohort"
         return f"Not in {cohort_name}"
 
     def _ensure_not_in_cohort_group(self, results: Any) -> Any:
-        """For single-cohort breakdowns, ensure the 'not in cohort' group is always
-        present so the UI shows a clear binary split even when it is empty."""
-        if not self._should_add_not_in_cohort_group():
+        if not self.funnel_class.should_add_not_in_cohort_group:
             return results
 
-        not_in_label = self._not_in_cohort_label()
+        not_in_label = self._not_in_cohort_display_label()
         funnelVizType = self.context.funnelsFilter.funnelVizType
 
         if funnelVizType == FunnelVizType.TRENDS:
@@ -195,11 +189,10 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
         if not results:
             return results
 
-        # Copy days/labels from existing result, fill data with zeros
         template = results[0]
         results.append(
             {
-                "count": template.get("count", 0),
+                "count": 0,
                 "data": [0] * len(template.get("data", [])),
                 "days": template.get("days", []),
                 "labels": template.get("labels", []),

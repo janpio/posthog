@@ -323,7 +323,6 @@ function formatNumericBreakdownLabel(
     return String(breakdown_value)
 }
 
-// Must match NOT_IN_COHORT_ID in posthog/queries/breakdown_props.py
 const NOT_IN_COHORT_ID = 2 ** 52
 
 export function getCohortNameFromId(
@@ -335,7 +334,7 @@ export function getCohortNameFromId(
         return 'All Users'
     }
 
-    if (cohortId === NOT_IN_COHORT_ID) {
+    if (Number(cohortId) === NOT_IN_COHORT_ID) {
         return 'Not in cohort'
     }
 
@@ -387,11 +386,9 @@ export function formatBreakdownLabel(
         if (breakdown_value === 'all' || breakdown_value === 0) {
             return 'All Users'
         }
-        if (breakdown_value === NOT_IN_COHORT_ID || String(breakdown_value) === String(NOT_IN_COHORT_ID)) {
+        if (Number(breakdown_value) === NOT_IN_COHORT_ID) {
             const selectedCohorts = Array.isArray(breakdownFilter?.breakdown) ? breakdownFilter.breakdown : []
-            const selectedCohortId = selectedCohorts.find(
-                (id) => id !== 'all' && id !== NOT_IN_COHORT_ID && String(id) !== String(NOT_IN_COHORT_ID)
-            )
+            const selectedCohortId = selectedCohorts.find((id) => id !== 'all' && Number(id) !== NOT_IN_COHORT_ID)
             if (selectedCohortId != null && cohorts) {
                 const cohortName = cohorts.find((c) => c.id == selectedCohortId)?.name
                 if (cohortName) {

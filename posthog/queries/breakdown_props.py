@@ -32,9 +32,6 @@ from posthog.queries.util import PersonPropertiesMode, alias_poe_mode_for_legacy
 from posthog.session_recordings.queries.session_query import SessionQuery
 
 ALL_USERS_COHORT_ID = 0
-# Sentinel for users not in any specified cohort during breakdown.
-# Must be a valid UInt64 since it passes through ClickHouse UDFs typed as UInt64,
-# and must be safely representable as a JavaScript Number (< 2^53).
 NOT_IN_COHORT_ID = 2**52
 
 

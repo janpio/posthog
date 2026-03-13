@@ -459,7 +459,7 @@ class FunnelUDF(FunnelUDFMixin, FunnelBase):
                             get_breakdown_cohort_name(
                                 breakdown_value,
                                 self.context.team,
-                                not_in_cohort_name=self._not_in_cohort_label,
+                                not_in_cohort_name=self._not_in_cohort_name,
                             )
                             if self.context.breakdownFilter.breakdown_type == "cohort"
                             else breakdown_value

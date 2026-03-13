@@ -352,7 +352,7 @@ class FunnelTrendsUDF(FunnelUDFMixin, FunnelBase):
                             "breakdown_value": get_breakdown_cohort_name(
                                 int(breakdown_value),
                                 self.context.team,
-                                not_in_cohort_name=self._not_in_cohort_label,
+                                not_in_cohort_name=self._not_in_cohort_name,
                             )
                         }
                     )

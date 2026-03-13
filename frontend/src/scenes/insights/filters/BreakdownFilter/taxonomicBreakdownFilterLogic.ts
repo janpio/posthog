@@ -164,8 +164,6 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
                     return !!breakdowns && breakdowns.length >= 3
                 }
 
-                // For funnels with cohort breakdown, limit to a single cohort.
-                // The backend automatically adds a "not in" group.
                 if (!isTrends && breakdown_type === 'cohort' && Array.isArray(breakdown) && breakdown.length >= 1) {
                     return true
                 }

@@ -150,20 +150,17 @@ class FunnelBase(ABC):
         return list(cohorts)
 
     @cached_property
-    def _not_in_cohort_label(self) -> str | None:
-        """Return the cohort name for 'Not in X' labels in single-cohort breakdowns."""
+    def _not_in_cohort_name(self) -> str | None:
         if len(self.breakdown_cohorts) == 1:
             return self.breakdown_cohorts[0].name
         return None
 
     @cached_property
     def should_add_not_in_cohort_group(self) -> bool:
-        """Check if we need to add a 'not in cohort' group (single-cohort breakdown without 'all')."""
         breakdown, breakdownType = self.context.breakdown, self.context.breakdownType
         if breakdownType != BreakdownType.COHORT:
             return False
-        has_all = isinstance(breakdown, list) and "all" in breakdown
-        if has_all:
+        if isinstance(breakdown, list) and "all" in breakdown:
             return False
         return len(self.breakdown_cohorts) == 1
 
@@ -218,7 +215,7 @@ class FunnelBase(ABC):
                             get_breakdown_cohort_name(
                                 breakdown_value,
                                 self.context.team,
-                                not_in_cohort_name=self._not_in_cohort_label,
+                                not_in_cohort_name=self._not_in_cohort_name,
                             )
                             if self.context.breakdownFilter.breakdown_type == "cohort"
                             else breakdown_value
@@ -374,7 +371,6 @@ class FunnelBase(ABC):
             ]
             cohort_queries.append(all_query)
 
-        # Single cohort: add "not in cohort" group
         if self.should_add_not_in_cohort_group:
             cohort = self.breakdown_cohorts[0]
             not_in_cohort_query = FunnelEventQuery(context=self.context).to_query(skip_step_filter=True)
