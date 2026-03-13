@@ -148,8 +148,13 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
         breakdownFilter: [(_, p) => [p.breakdownFilter], (breakdownFilter) => breakdownFilter],
         includeSessions: [(_, p) => [p.isTrends], (isTrends) => isTrends],
         isAddBreakdownDisabled: [
-            (s) => [s.breakdownFilter, s.isMultipleBreakdownsEnabled, s.hasDataWarehouseSeries],
-            ({ breakdown, breakdowns, breakdown_type }, isMultipleBreakdownsEnabled, hasDataWarehouseSeries) => {
+            (s, p) => [s.breakdownFilter, s.isMultipleBreakdownsEnabled, s.hasDataWarehouseSeries, p.isTrends],
+            (
+                { breakdown, breakdowns, breakdown_type },
+                isMultipleBreakdownsEnabled,
+                hasDataWarehouseSeries,
+                isTrends
+            ) => {
                 // Multiple breakdowns don't yet support the data warehouse, so it fallbacks to a single breakdown.
                 if (
                     isMultipleBreakdownsEnabled &&
@@ -161,7 +166,7 @@ export const taxonomicBreakdownFilterLogic = kea<taxonomicBreakdownFilterLogicTy
 
                 // For funnels with cohort breakdown, limit to a single cohort.
                 // The backend automatically adds a "not in" group.
-                if (breakdown_type === 'cohort' && Array.isArray(breakdown) && breakdown.length >= 1) {
+                if (!isTrends && breakdown_type === 'cohort' && Array.isArray(breakdown) && breakdown.length >= 1) {
                     return true
                 }
 
