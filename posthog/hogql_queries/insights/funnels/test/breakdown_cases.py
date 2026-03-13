@@ -1439,6 +1439,60 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
             assert "cohort_a" in breakdown_labels
             assert "cohort_b" in breakdown_labels
 
+        def test_funnel_cohort_breakdown_actors_not_in_cohort(self):
+            person_in_cohort = _create_person(
+                distinct_ids=["person_in_cohort"],
+                team_id=self.team.pk,
+                properties={"key": "value"},
+            )
+            person_outside_cohort = _create_person(
+                distinct_ids=["person_outside_cohort"],
+                team_id=self.team.pk,
+                properties={"key": "other"},
+            )
+            journeys_for(
+                {
+                    "person_in_cohort": [
+                        {"event": "sign up", "timestamp": datetime(2020, 1, 2, 12)},
+                        {"event": "play movie", "timestamp": datetime(2020, 1, 2, 13)},
+                    ],
+                    "person_outside_cohort": [
+                        {"event": "sign up", "timestamp": datetime(2020, 1, 3, 12)},
+                        {"event": "play movie", "timestamp": datetime(2020, 1, 3, 13)},
+                    ],
+                },
+                self.team,
+                create_people=False,
+            )
+
+            cohort = Cohort.objects.create(
+                team=self.team,
+                name="test_cohort",
+                groups=[{"properties": [{"key": "key", "value": "value", "type": "person"}]}],
+            )
+            cohort.calculate_people_ch(pending_version=0)
+
+            filters = {
+                "events": [
+                    {"id": "sign up", "order": 0},
+                    {"id": "play movie", "order": 1},
+                ],
+                "insight": INSIGHT_FUNNELS,
+                "date_from": "2020-01-01",
+                "date_to": "2020-01-08",
+                "funnel_window_days": 7,
+                "breakdown_type": "cohort",
+                "breakdown": [cohort.pk],
+            }
+
+            # Actors in the cohort at step 1
+            cohort_actors = self._get_actor_ids_at_step(filters, 1, cohort.pk)
+            assert cohort_actors == [person_in_cohort.uuid]
+
+            # Actors NOT in the cohort at step 1 (simulates clicking "not in cohort" bar)
+            not_in_cohort_actors = self._get_actor_ids_at_step(filters, 1, NOT_IN_COHORT_ID)
+            assert not_in_cohort_actors == [person_outside_cohort.uuid]
+
         def test_basic_funnel_default_funnel_days_breakdown_event(self):
             events_by_person = {
                 "user_1": [
