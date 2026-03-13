@@ -184,17 +184,19 @@ class FunnelsQueryRunner(AnalyticsQueryRunner[FunnelsQueryResponse]):
         if NOT_IN_COHORT_ID in existing_breakdown_values:
             return results
 
-        empty_series = []
+        empty_series: list[dict[str, Any]] = []
         for index, step in enumerate(self.context.query.series):
+            event = getattr(step, "event", None)
+            action_id = event if event is not None else getattr(step, "id", None)
             empty_series.append(
                 {
-                    "action_id": step.event if hasattr(step, "event") else step.id,
-                    "name": step.event if hasattr(step, "event") else str(step.id),
+                    "action_id": action_id,
+                    "name": event if event is not None else str(action_id),
                     "custom_name": step.custom_name,
                     "order": index,
                     "people": [],
                     "count": 0,
-                    "type": "events" if hasattr(step, "event") else "actions",
+                    "type": "events" if event is not None else "actions",
                     "average_conversion_time": None,
                     "median_conversion_time": None,
                     "breakdown": not_in_label,
