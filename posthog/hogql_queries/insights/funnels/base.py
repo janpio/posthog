@@ -30,7 +30,7 @@ from posthog.hogql_queries.insights.utils.entities import is_equal, is_superset
 from posthog.models.action.action import Action
 from posthog.models.cohort.cohort import Cohort
 from posthog.models.property.property import PropertyName
-from posthog.queries.breakdown_props import ALL_USERS_COHORT_ID, get_breakdown_cohort_name
+from posthog.queries.breakdown_props import ALL_USERS_COHORT_ID, NOT_IN_COHORT_ID, get_breakdown_cohort_name
 from posthog.queries.util import correct_result_for_sampling
 
 JOIN_ALGOS = "auto"
@@ -334,6 +334,12 @@ class FunnelBase(ABC):
     def _get_cohort_breakdown_join(self) -> ast.JoinExpr:
         breakdown = self.context.breakdown
 
+        if len(self.breakdown_cohorts) > 1:
+            raise ValidationError(
+                "Cohort breakdown supports only a single cohort. "
+                "The results automatically include a 'not in cohort' group for comparison."
+            )
+
         cohort_queries: list[ast.SelectQuery] = []
 
         for cohort in self.breakdown_cohorts:
@@ -351,6 +357,27 @@ class FunnelBase(ABC):
                 ast.Alias(alias="value", expr=ast.Constant(value=ALL_USERS_COHORT_ID)),
             ]
             cohort_queries.append(all_query)
+
+        # Add a complement group for users not in any of the specified cohorts.
+        # Uses a simple persons query with NOT IN cohort filters rather than a full
+        # FunnelEventQuery, since we only need person_ids and this is more efficient.
+        if self.breakdown_cohorts:
+            cohort_not_in_conditions = [
+                parse_expr(f"not(id in cohort {cohort.pk})") for cohort in self.breakdown_cohorts
+            ]
+            not_in_filter = (
+                ast.And(exprs=cohort_not_in_conditions)
+                if len(cohort_not_in_conditions) > 1
+                else cohort_not_in_conditions[0]
+            )
+            complement_query = parse_select("select id as cohort_person_id, 0 as value from persons")
+            assert isinstance(complement_query, ast.SelectQuery)
+            complement_query.select = [
+                ast.Alias(alias="cohort_person_id", expr=ast.Field(chain=["id"])),
+                ast.Alias(alias="value", expr=ast.Constant(value=NOT_IN_COHORT_ID)),
+            ]
+            complement_query.where = not_in_filter
+            cohort_queries.append(complement_query)
 
         return ast.JoinExpr(
             join_type="INNER JOIN",

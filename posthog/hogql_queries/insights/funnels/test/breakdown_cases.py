@@ -35,7 +35,7 @@ from posthog.hogql_queries.legacy_compatibility.filter_to_query import filter_to
 from posthog.models.cohort import Cohort
 from posthog.models.group.util import create_group
 from posthog.models.instance_setting import override_instance_config
-from posthog.queries.breakdown_props import ALL_USERS_COHORT_ID
+from posthog.queries.breakdown_props import ALL_USERS_COHORT_ID, NOT_IN_COHORT_ID
 from posthog.test.test_journeys import journeys_for
 from posthog.test.test_utils import create_group_type_mapping_without_created_at
 
@@ -1291,6 +1291,76 @@ def funnel_breakdown_test_factory(funnel_order_type: FunnelOrderType):
                 [people["person1"].uuid],
             )
             self.assertCountEqual(self._get_actor_ids_at_step(filters, 2, cohort.pk), [])
+
+        def test_funnel_cohort_breakdown_shows_not_in_cohort(self):
+            # Users not in the cohort should appear in a "not in cohort" breakdown group
+            _create_person(
+                distinct_ids=["person_in_cohort"],
+                team_id=self.team.pk,
+                properties={"key": "value"},
+            )
+            _create_person(
+                distinct_ids=["person_outside_cohort"],
+                team_id=self.team.pk,
+                properties={"key": "other"},
+            )
+            journeys_for(
+                {
+                    "person_in_cohort": [
+                        {"event": "sign up", "timestamp": datetime(2020, 1, 2, 12)},
+                        {"event": "play movie", "timestamp": datetime(2020, 1, 2, 13)},
+                    ],
+                    "person_outside_cohort": [
+                        {"event": "sign up", "timestamp": datetime(2020, 1, 3, 12)},
+                        {"event": "play movie", "timestamp": datetime(2020, 1, 3, 13)},
+                    ],
+                },
+                self.team,
+                create_people=False,
+            )
+
+            cohort = Cohort.objects.create(
+                team=self.team,
+                name="test_cohort",
+                groups=[{"properties": [{"key": "key", "value": "value", "type": "person"}]}],
+            )
+            cohort.calculate_people_ch(pending_version=0)
+
+            filters = {
+                "events": [
+                    {"id": "sign up", "order": 0},
+                    {"id": "play movie", "order": 1},
+                ],
+                "insight": INSIGHT_FUNNELS,
+                "date_from": "2020-01-01",
+                "date_to": "2020-01-08",
+                "funnel_window_days": 7,
+                "breakdown_type": "cohort",
+                "breakdown": [cohort.pk],
+            }
+
+            query = cast(FunnelsQuery, filter_to_query(filters))
+            results = FunnelsQueryRunner(query=query, team=self.team).calculate().results
+
+            # Should have two breakdown groups: the cohort and "not in cohort"
+            self.assertEqual(len(results), 2)
+
+            breakdown_labels = {r[0]["breakdown"] for r in results}
+            self.assertIn("test_cohort", breakdown_labels)
+            self.assertIn("not in cohort", breakdown_labels)
+
+            # Find results by breakdown
+            cohort_results = next(r for r in results if r[0]["breakdown"] == "test_cohort")
+            not_in_cohort_results = next(r for r in results if r[0]["breakdown"] == "not in cohort")
+
+            # person_in_cohort completed the funnel
+            self.assertEqual(cohort_results[0]["count"], 1)
+            self.assertEqual(cohort_results[1]["count"], 1)
+
+            # person_outside_cohort also completed the funnel
+            self.assertEqual(not_in_cohort_results[0]["count"], 1)
+            self.assertEqual(not_in_cohort_results[1]["count"], 1)
+            self.assertEqual(not_in_cohort_results[0]["breakdown_value"], NOT_IN_COHORT_ID)
 
         def test_basic_funnel_default_funnel_days_breakdown_event(self):
             events_by_person = {

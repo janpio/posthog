@@ -323,6 +323,9 @@ function formatNumericBreakdownLabel(
     return String(breakdown_value)
 }
 
+// Must match NOT_IN_COHORT_ID in posthog/queries/breakdown_props.py
+const NOT_IN_COHORT_ID = 2 ** 52
+
 export function getCohortNameFromId(
     cohortId: string | number | null | undefined,
     cohorts: CohortType[] | null | undefined
@@ -330,6 +333,10 @@ export function getCohortNameFromId(
     // :TRICKY: Different endpoints represent the all users cohort breakdown differently
     if (cohortId === 'all' || cohortId === 0) {
         return 'All Users'
+    }
+
+    if (cohortId === NOT_IN_COHORT_ID) {
+        return 'Not in cohort'
     }
 
     return cohorts?.filter((c) => c.id == cohortId)[0]?.name ?? (cohortId || '').toString()
