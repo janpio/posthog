@@ -247,6 +247,7 @@ function ColumnConfiguratorModal({ query }: ColumnConfiguratorProps): JSX.Elemen
                                             }}
                                             popoverEnabled={false}
                                             selectFirstItem={false}
+                                            recentFilterType="columns"
                                         />
                                     ) : null
                                 }

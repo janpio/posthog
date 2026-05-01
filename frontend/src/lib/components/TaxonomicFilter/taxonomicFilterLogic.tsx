@@ -340,6 +340,8 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
             ['featureFlags'],
             promotedEventPropertiesModel,
             ['promotedProperties'],
+            recentTaxonomicFiltersLogic,
+            ['recentFilters'],
         ],
         actions: [promotedEventPropertiesModel, ['ensureLoadedForEvents']],
     })),
@@ -428,6 +430,26 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
     })),
     selectors({
         selectedItemMeta: [() => [(_, props) => props.filter], (filter) => filter],
+        recentFilterItemsForContext: [
+            (s) => [s.recentFilters, (_, props) => props.recentFilterType],
+            (recentFilters, recentFilterType): TaxonomicDefinitionTypes[] => {
+                const resolvedRecentFilterType = recentFilterType ?? 'filters'
+                return recentFilters
+                    .filter((f) => (f.recentFilterType ?? 'filters') === resolvedRecentFilterType)
+                    .map(
+                        (f) =>
+                            ({
+                                ...f.item,
+                                _recentContext: {
+                                    sourceGroupType: f.groupType,
+                                    sourceGroupName: f.groupName,
+                                    teamId: f.teamId,
+                                    propertyFilter: f.propertyFilter,
+                                },
+                            }) as unknown as TaxonomicDefinitionTypes
+                    )
+            },
+        ],
         showNumericalPropsOnly: [
             () => [(_, props) => props.showNumericalPropsOnly],
             (showNumericalPropsOnly) => showNumericalPropsOnly ?? false,
@@ -536,6 +558,7 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                 s.endpointFilters,
                 s.hogQLExpressionComponentProps,
                 s.featureFlags,
+                s.recentFilterItemsForContext,
             ],
             (
                 currentTeam: TeamType,
@@ -559,7 +582,8 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                     globals?: Record<string, any>
                     showBreakdownLabelHint: boolean
                 },
-                featureFlags: Record<string, boolean | string | undefined>
+                featureFlags: Record<string, boolean | string | undefined>,
+                recentFilterItemsForContext: TaxonomicDefinitionTypes[]
             ): TaxonomicFilterGroup[] => {
                 const { eventNames, promotedPropertiesForContextEvents } = eventNamesWithPromotedProperties
                 const { id: teamId } = currentTeam
@@ -1409,8 +1433,7 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                         type: TaxonomicFilterGroupType.RecentFilters,
                         isLocalOnly: true,
                         isMetaGroup: true,
-                        logic: recentTaxonomicFiltersLogic,
-                        value: 'recentFilterItems',
+                        options: recentFilterItemsForContext,
                         getName: (item: TaxonomicDefinitionTypes) => ('name' in item ? item.name : '') || '',
                         getValue: (item: TaxonomicDefinitionTypes): TaxonomicFilterValue =>
                             'name' in item ? (item.name ?? null) : null,
@@ -1765,6 +1788,7 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                                 ? item._recentContext.propertyFilter
                                 : undefined
                             recentTaxonomicFiltersLogic.actions.recordRecentFilter(
+                                props.recentFilterType ?? 'filters',
                                 sourceGroupType,
                                 sourceGroupName,
                                 value,

@@ -121,6 +121,8 @@ export interface TaxonomicFilterProps {
      *  query matches a known autocapture interaction keyword. Consumers must handle
      *  `isQuickFilterItem(item)` in their onChange to avoid mis-selecting as an event name. */
     enableKeywordShortcuts?: boolean
+    /** Namespace recent selections by context so unrelated recents don't mix across UIs. */
+    recentFilterType?: 'filters' | 'columns'
 }
 
 export interface DataWarehousePopoverField {

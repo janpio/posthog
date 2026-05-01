@@ -57,7 +57,7 @@ function recordRecentFromPropertyFilter(propertyFilter: AnyPropertyFilter): void
     if (!groupType) {
         return
     }
-    recentTaxonomicFiltersLogic.actions.recordRecentFilter(
+    recentTaxonomicFiltersLogic.actions.recordRecentFilter('filters', 
         groupType,
         groupType,
         key,
