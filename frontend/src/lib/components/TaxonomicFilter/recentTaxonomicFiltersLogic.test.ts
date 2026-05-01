@@ -170,6 +170,19 @@ describe('recentTaxonomicFiltersLogic', () => {
         expect(logic.values.recentFilters).toHaveLength(2)
     })
 
+    it('keeps recents separate across contexts', () => {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+            name: '$pageview',
+        })
+        logic.actions.recordRecentFilter('datatable-columns', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+            name: '$pageview',
+        })
+
+        expect(logic.values.recentFilters).toHaveLength(2)
+        expect(logic.values.recentFilters[0].recentFilterContext).toBe('datatable-columns')
+        expect(logic.values.recentFilters[1].recentFilterContext).toBe('property-filters')
+    })
+
     it(`caps entries at ${MAX_RECENT_FILTERS}`, () => {
         for (let i = 0; i < MAX_RECENT_FILTERS + 5; i++) {
             logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', `event-${i}`, {
