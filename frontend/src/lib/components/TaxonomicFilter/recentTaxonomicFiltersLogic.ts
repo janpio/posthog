@@ -59,9 +59,18 @@ function isCompleteRecentPropertyFilter(propertyFilter: AnyPropertyFilter | unde
 
 function isDuplicateRecentFilter(
     existing: RecentTaxonomicFilter,
-    incoming: { groupType: TaxonomicFilterGroupType; value: TaxonomicFilterValue; propertyFilter?: AnyPropertyFilter }
+    incoming: {
+        recentFilterContext: string
+        groupType: TaxonomicFilterGroupType
+        value: TaxonomicFilterValue
+        propertyFilter?: AnyPropertyFilter
+    }
 ): boolean {
-    if (existing.groupType !== incoming.groupType || existing.value !== incoming.value) {
+    if (
+        existing.recentFilterContext !== incoming.recentFilterContext ||
+        existing.groupType !== incoming.groupType ||
+        existing.value !== incoming.value
+    ) {
         return false
     }
     const existingComplete = isCompleteRecentPropertyFilter(existing.propertyFilter)
@@ -122,6 +131,7 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
                         !incomingComplete &&
                         state.some(
                             (f) =>
+                                f.recentFilterContext === recentFilterContext &&
                                 f.groupType === groupType &&
                                 f.value === value &&
                                 isCompleteRecentPropertyFilter(f.propertyFilter)
@@ -145,13 +155,17 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
                     }
 
                     const withoutDuplicate = state.filter((f) => {
-                        if (f.groupType !== groupType || f.value !== value) {
+                        if (
+                            f.recentFilterContext !== recentFilterContext ||
+                            f.groupType !== groupType ||
+                            f.value !== value
+                        ) {
                             return true
                         }
                         if (incomingComplete && !isCompleteRecentPropertyFilter(f.propertyFilter)) {
                             return false
                         }
-                        return !isDuplicateRecentFilter(f, { groupType, value, propertyFilter })
+                        return !isDuplicateRecentFilter(f, { recentFilterContext, groupType, value, propertyFilter })
                     })
 
                     const withoutExpired = withoutDuplicate.filter((f) => f.timestamp > cutoff)

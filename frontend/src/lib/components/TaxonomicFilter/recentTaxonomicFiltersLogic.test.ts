@@ -183,6 +183,34 @@ describe('recentTaxonomicFiltersLogic', () => {
         expect(logic.values.recentFilters[1].recentFilterContext).toBe('property-filters')
     })
 
+    it('deduplicates only within the same context', () => {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+            name: '$pageview',
+        })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+            name: '$pageview',
+            updated: true,
+        })
+        logic.actions.recordRecentFilter('datatable-columns:person-profile-events', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+            name: '$pageview',
+        })
+
+        expect(logic.values.recentFilters).toHaveLength(2)
+        expect(logic.values.recentFilters[0]).toEqual(
+            expect.objectContaining({
+                recentFilterContext: 'datatable-columns:person-profile-events',
+                value: '$pageview',
+            })
+        )
+        expect(logic.values.recentFilters[1]).toEqual(
+            expect.objectContaining({
+                recentFilterContext: 'property-filters',
+                value: '$pageview',
+                item: { name: '$pageview', updated: true },
+            })
+        )
+    })
+
     it(`caps entries at ${MAX_RECENT_FILTERS}`, () => {
         for (let i = 0; i < MAX_RECENT_FILTERS + 5; i++) {
             logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', `event-${i}`, {

@@ -247,7 +247,7 @@ function ColumnConfiguratorModal({ query }: ColumnConfiguratorProps): JSX.Elemen
                                             }}
                                             popoverEnabled={false}
                                             selectFirstItem={false}
-                                            recentFilterContext="datatable-columns"
+                                            recentFilterContext={`datatable-columns:${query.contextKey ?? query.source.kind}`}
                                         />
                                     ) : null
                                 }
