@@ -130,7 +130,7 @@ export const propertyFilterLogic = kea<propertyFilterLogicType>([
                 const groupType = PROPERTY_FILTER_TYPE_TO_TAXONOMIC_FILTER_GROUP_TYPE[property.type]
                 if (groupType && recentTaxonomicFiltersLogic.isMounted()) {
                     const groupName = TAXONOMIC_GROUP_TYPE_TO_DISPLAY_NAME[groupType] ?? groupType
-                    recentTaxonomicFiltersLogic.actions.recordRecentFilter('filters', 
+                    recentTaxonomicFiltersLogic.actions.recordRecentFilter('property-filters', 
                         groupType,
                         groupName,
                         property.key,

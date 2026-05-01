@@ -28,7 +28,7 @@ describe('recentTaxonomicFiltersLogic', () => {
 
     it('records a selection with groupType, groupName, value, item, and timestamp', () => {
         const item = { name: '$pageview', id: 'uuid-1' }
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', item)
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', item)
 
         const filters = logic.values.recentFilters
         expect(filters).toHaveLength(1)
@@ -44,19 +44,19 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('prepends new entries so most recent is first', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', 'first', { name: 'first' })
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', 'second', { name: 'second' })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', 'first', { name: 'first' })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', 'second', { name: 'second' })
 
         expect(logic.values.recentFilters[0].value).toBe('second')
         expect(logic.values.recentFilters[1].value).toBe('first')
     })
 
     it('deduplicates by groupType + value, keeping the most recent', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
             name: '$pageview',
         })
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', '$click', { name: '$click' })
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$click', { name: '$click' })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
             name: '$pageview',
             updated: true,
         })
@@ -69,7 +69,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('keeps property filters with the same key but different values as separate recents', () => {
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.EventProperties,
             'Event properties',
             '$browser',
@@ -77,7 +77,7 @@ describe('recentTaxonomicFiltersLogic', () => {
             undefined,
             { type: PropertyFilterType.Event, key: '$browser', operator: PropertyOperator.Exact, value: 'Chrome' }
         )
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.EventProperties,
             'Event properties',
             '$browser',
@@ -93,7 +93,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('deduplicates property filters with the same key, operator, and value', () => {
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.EventProperties,
             'Event properties',
             '$browser',
@@ -101,7 +101,7 @@ describe('recentTaxonomicFiltersLogic', () => {
             undefined,
             { type: PropertyFilterType.Event, key: '$browser', operator: PropertyOperator.Exact, value: 'Chrome' }
         )
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.EventProperties,
             'Event properties',
             '$browser',
@@ -120,7 +120,7 @@ describe('recentTaxonomicFiltersLogic', () => {
             operator: PropertyOperator.Exact,
             value: 'alice@example.com',
         } satisfies PersonPropertyFilter
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.PersonProperties,
             'Person properties',
             'email',
@@ -128,7 +128,7 @@ describe('recentTaxonomicFiltersLogic', () => {
             undefined,
             complete
         )
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'email', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'email', {
             name: 'email',
         })
 
@@ -138,7 +138,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('replaces a key-only entry when recording a complete filter for the same key', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'email', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'email', {
             name: 'email',
         })
         const complete = {
@@ -147,7 +147,7 @@ describe('recentTaxonomicFiltersLogic', () => {
             operator: PropertyOperator.Exact,
             value: 'bob@example.com',
         } satisfies PersonPropertyFilter
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.PersonProperties,
             'Person properties',
             'email',
@@ -162,8 +162,8 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('allows the same value in different group types', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', 'name', { name: 'name' })
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'name', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', 'name', { name: 'name' })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.PersonProperties, 'Person properties', 'name', {
             name: 'name',
         })
 
@@ -172,7 +172,7 @@ describe('recentTaxonomicFiltersLogic', () => {
 
     it(`caps entries at ${MAX_RECENT_FILTERS}`, () => {
         for (let i = 0; i < MAX_RECENT_FILTERS + 5; i++) {
-            logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', `event-${i}`, {
+            logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', `event-${i}`, {
                 name: `event-${i}`,
             })
         }
@@ -184,14 +184,14 @@ describe('recentTaxonomicFiltersLogic', () => {
     it('drops entries older than 30 days on next write', () => {
         jest.useFakeTimers()
         try {
-            logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', 'old-event', {
+            logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', 'old-event', {
                 name: 'old-event',
             })
             expect(logic.values.recentFilters).toHaveLength(1)
 
             jest.advanceTimersByTime(RECENT_FILTER_MAX_AGE_MS + 1000)
 
-            logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', 'new-event', {
+            logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', 'new-event', {
                 name: 'new-event',
             })
 
@@ -241,18 +241,18 @@ describe('recentTaxonomicFiltersLogic', () => {
             description: 'DataWarehousePersonProperties',
         },
     ])('ignores selections from excluded group type: $description', ({ groupType }) => {
-        logic.actions.recordRecentFilter('filters', groupType, 'Ignored', 'some-value', { name: 'some-value' })
+        logic.actions.recordRecentFilter('property-filters', groupType, 'Ignored', 'some-value', { name: 'some-value' })
         expect(logic.values.recentFilters).toHaveLength(0)
     })
 
     it('ignores selections with null value', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', null, { name: 'All events' })
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', null, { name: 'All events' })
         expect(logic.values.recentFilters).toHaveLength(0)
     })
 
     it('stores a property filter when provided', () => {
         const propertyFilter = { key: '$browser', type: 'event', operator: 'exact', value: 'Chrome' }
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.EventProperties,
             'Event properties',
             '$browser',
@@ -265,7 +265,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('stores teamId when provided', () => {
-        logic.actions.recordRecentFilter('filters', 
+        logic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.Events,
             'Events',
             '$pageview',
@@ -279,7 +279,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('stores groupName for display purposes', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.EventProperties, 'Event properties', '$browser', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.EventProperties, 'Event properties', '$browser', {
             name: '$browser',
         })
 
@@ -287,7 +287,7 @@ describe('recentTaxonomicFiltersLogic', () => {
     })
 
     it('omits teamId from stored entry when not provided', () => {
-        logic.actions.recordRecentFilter('filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
+        logic.actions.recordRecentFilter('property-filters', TaxonomicFilterGroupType.Events, 'Events', '$pageview', {
             name: '$pageview',
         })
 

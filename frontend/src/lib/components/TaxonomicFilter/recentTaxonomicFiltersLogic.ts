@@ -19,7 +19,7 @@ const EXCLUDED_RECENT_FILTER_GROUP_TYPES = new Set<TaxonomicFilterGroupType>([
 ])
 
 export interface RecentTaxonomicFilter {
-    recentFilterType: 'filters' | 'columns'
+    recentFilterContext: string
     groupType: TaxonomicFilterGroupType
     groupName: string
     value: TaxonomicFilterValue
@@ -88,7 +88,7 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
     path(['lib', 'components', 'TaxonomicFilter', 'recentTaxonomicFiltersLogic']),
     actions({
         recordRecentFilter: (
-            recentFilterType: 'filters' | 'columns',
+            recentFilterContext: string,
             groupType: TaxonomicFilterGroupType,
             groupName: string,
             value: TaxonomicFilterValue,
@@ -96,7 +96,7 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
             teamId?: number,
             propertyFilter?: AnyPropertyFilter
         ) => ({
-            recentFilterType,
+            recentFilterContext,
             groupType,
             groupName,
             value,
@@ -112,7 +112,7 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
             { persist: true, prefix: `${teamId}__` },
             {
                 clearRecentFilters: () => [],
-                recordRecentFilter: (state, { recentFilterType, groupType, groupName, value, item, teamId, propertyFilter }) => {
+                recordRecentFilter: (state, { recentFilterContext, groupType, groupName, value, item, teamId, propertyFilter }) => {
                     if (EXCLUDED_RECENT_FILTER_GROUP_TYPES.has(groupType) || value == null) {
                         return state
                     }
@@ -134,7 +134,7 @@ export const recentTaxonomicFiltersLogic = kea<recentTaxonomicFiltersLogicType>(
                     const cutoff = currentTime - RECENT_FILTER_MAX_AGE_MS
 
                     const entry: RecentTaxonomicFilter = {
-                        recentFilterType,
+                        recentFilterContext,
                         groupType,
                         groupName,
                         value,

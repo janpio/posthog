@@ -431,11 +431,11 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
     selectors({
         selectedItemMeta: [() => [(_, props) => props.filter], (filter) => filter],
         recentFilterItemsForContext: [
-            (s) => [s.recentFilters, (_, props) => props.recentFilterType],
-            (recentFilters, recentFilterType): TaxonomicDefinitionTypes[] => {
-                const resolvedRecentFilterType = recentFilterType ?? 'filters'
+            (s) => [s.recentFilters, (_, props) => props.recentFilterContext],
+            (recentFilters, recentFilterContext): TaxonomicDefinitionTypes[] => {
+                const resolvedRecentFilterType = recentFilterContext ?? 'property-filters'
                 return recentFilters
-                    .filter((f) => (f.recentFilterType ?? 'filters') === resolvedRecentFilterType)
+                    .filter((f) => (f.recentFilterContext ?? 'property-filters') === resolvedRecentFilterType)
                     .map(
                         (f) =>
                             ({
@@ -1788,7 +1788,7 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                                 ? item._recentContext.propertyFilter
                                 : undefined
                             recentTaxonomicFiltersLogic.actions.recordRecentFilter(
-                                props.recentFilterType ?? 'filters',
+                                props.recentFilterContext ?? 'property-filters',
                                 sourceGroupType,
                                 sourceGroupName,
                                 value,

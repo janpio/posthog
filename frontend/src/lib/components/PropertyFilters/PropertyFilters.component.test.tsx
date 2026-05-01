@@ -338,7 +338,7 @@ describe('PropertyFilters recent selections', () => {
     it('recents from unavailable groups are hidden', async () => {
         useSetupMocks()
 
-        recentTaxonomicFiltersLogic.actions.recordRecentFilter('filters', 
+        recentTaxonomicFiltersLogic.actions.recordRecentFilter('property-filters', 
             TaxonomicFilterGroupType.PersonProperties,
             'Person properties',
             'location',

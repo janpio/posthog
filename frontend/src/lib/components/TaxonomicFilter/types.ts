@@ -122,7 +122,7 @@ export interface TaxonomicFilterProps {
      *  `isQuickFilterItem(item)` in their onChange to avoid mis-selecting as an event name. */
     enableKeywordShortcuts?: boolean
     /** Namespace recent selections by context so unrelated recents don't mix across UIs. */
-    recentFilterType?: 'filters' | 'columns'
+    recentFilterContext?: string
 }
 
 export interface DataWarehousePopoverField {
