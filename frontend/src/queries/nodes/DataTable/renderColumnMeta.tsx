@@ -3,7 +3,7 @@ import { TaxonomicFilterGroupType } from 'lib/components/TaxonomicFilter/types'
 import { SortingIndicator } from 'lib/lemon-ui/LemonTable/sorting'
 
 import { QueryFeature, getQueryFeatures } from '~/queries/nodes/DataTable/queryFeatures'
-import { extractExpressionComment, removeExpressionComment } from '~/queries/nodes/DataTable/utils'
+import { extractExpressionComment, quoteOrderByKey, removeExpressionComment } from '~/queries/nodes/DataTable/utils'
 import {
     DataTableNode,
     DataVisualizationNode,
@@ -135,7 +135,13 @@ export function renderColumnMeta<T extends DataVisualizationNode | DataTableNode
         const sortKey = queryFeatures.has(QueryFeature.selectAndOrderByColumns)
             ? (query.source as EventsQuery)?.orderBy?.[0]
             : null
-        const sortOrder = key === sortKey ? 1 : `-${key}` === sortKey ? -1 : undefined
+        const quotedKey = quoteOrderByKey(key)
+        const sortOrder =
+            key === sortKey || quotedKey === sortKey
+                ? 1
+                : `-${key}` === sortKey || `-${quotedKey}` === sortKey
+                  ? -1
+                  : undefined
         if (sortOrder) {
             title = (
                 <>

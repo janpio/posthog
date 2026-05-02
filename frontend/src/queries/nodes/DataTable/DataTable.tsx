@@ -44,6 +44,7 @@ import { TableViewSelector } from '~/queries/nodes/DataTable/TableView/TableView
 import {
     extractExpressionComment,
     getDataNodeDefaultColumns,
+    quoteOrderByKey,
     removeExpressionComment,
 } from '~/queries/nodes/DataTable/utils'
 import { EventName } from '~/queries/nodes/EventsNode/EventName'
@@ -354,8 +355,12 @@ export function DataTable({
                                                 const source = query.source as EventsQuery
                                                 const columns = columnsInLemonTable ?? getDataNodeDefaultColumns(source)
                                                 const isAggregation = isHogQLAggregation(hogQl)
-                                                const isOrderBy = source.orderBy?.[0] === key
-                                                const isDescOrderBy = source.orderBy?.[0] === `${key} DESC`
+                                                const orderKey = quoteOrderByKey(key)
+                                                const isOrderBy =
+                                                    source.orderBy?.[0] === key || source.orderBy?.[0] === orderKey
+                                                const isDescOrderBy =
+                                                    source.orderBy?.[0] === `${key} DESC` ||
+                                                    source.orderBy?.[0] === `${orderKey} DESC`
                                                 setQuery({
                                                     ...query,
                                                     source: {
@@ -392,7 +397,7 @@ export function DataTable({
                                                 query.source.kind === NodeKind.MarketingAnalyticsTableQuery ||
                                                 query.source.kind === NodeKind.NonIntegratedConversionsTableQuery
                                                     ? createMarketingAnalyticsOrderBy(key, 'ASC')
-                                                    : [key]
+                                                    : [quoteOrderByKey(key)]
                                             setQuery?.({
                                                 ...query,
                                                 source: {
@@ -412,7 +417,7 @@ export function DataTable({
                                                 query.source.kind === NodeKind.MarketingAnalyticsTableQuery ||
                                                 query.source.kind === NodeKind.NonIntegratedConversionsTableQuery
                                                     ? createMarketingAnalyticsOrderBy(key, 'DESC')
-                                                    : [`${key}\n DESC`]
+                                                    : [`${quoteOrderByKey(key)}\n DESC`]
                                             setQuery?.({
                                                 ...query,
                                                 source: {

@@ -84,13 +84,35 @@ export function extractAsAlias(query: string): string | null {
         return null
     }
 
-    // Match: whitespace + AS (case-insensitive) + whitespace + (backticked or word alias), optionally followed by comment
-    const asMatch = trimmed.match(/\s+[Aa][Ss]\s+(`[^`]+`|[\w\u0080-\uFFFF]+)(\s*--.*)?$/)
+    // Match: whitespace + AS (case-insensitive) + whitespace + (backticked, double-quoted, or word alias), optionally followed by comment
+    const asMatch = trimmed.match(/\s+[Aa][Ss]\s+(`[^`]+`|"[^"]+"|[\w\u0080-\uFFFF]+)(\s*--.*)?$/)
     if (asMatch) {
         const alias = asMatch[1]
-        return alias.startsWith('`') && alias.endsWith('`') ? alias.slice(1, -1) : alias
+        if ((alias.startsWith('`') && alias.endsWith('`')) || (alias.startsWith('"') && alias.endsWith('"'))) {
+            return alias.slice(1, -1)
+        }
+        return alias
     }
     return null
+}
+
+/**
+ * Wraps an orderBy column key in backticks when it isn't already a safe bare identifier.
+ * Without this, aliases that contain spaces or other special characters (e.g. `Absolute Time`
+ * from `expr AS "Absolute Time"`) fail to parse as a HogQL order_expr on the backend, surfacing
+ * as `Unable to resolve field: <first_word>`.
+ */
+export function quoteOrderByKey(key: string): string {
+    if (!key) {
+        return key
+    }
+    if (/^[A-Za-z_$][\w$]*$/.test(key)) {
+        return key
+    }
+    if (key.startsWith('`') && key.endsWith('`')) {
+        return key
+    }
+    return `\`${key.replace(/`/g, '``')}\``
 }
 
 /** Get display label for an expression, trying AS alias first, then comment syntax */

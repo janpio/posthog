@@ -6,6 +6,7 @@ import {
     extractExpressionComment,
     getColumnsForQuery,
     getDefaultDataTablePersonColumns,
+    quoteOrderByKey,
     removeExpressionComment,
 } from '~/queries/nodes/DataTable/utils'
 import { DataTableNode, NodeKind } from '~/queries/schema/schema-general'
@@ -25,6 +26,9 @@ describe('DataTable utils', () => {
         // Backtick aliases with spaces
         ['properties.$city AS `City Name`', 'City Name'],
         ['toUpper(x) as `My Display Name`', 'My Display Name'],
+        // Double-quoted aliases with spaces
+        ['formatDateTime(timestamp, \'%H:%i\') as "Absolute Time"', 'Absolute Time'],
+        ['x AS "Some Label"', 'Some Label'],
         // Complex expressions
         ["coalesce(properties.$city, 'Unknown') AS City", 'City'],
         ['arrayJoin(properties.$active_feature_flags) AS flag', 'flag'],
@@ -57,6 +61,26 @@ describe('DataTable utils', () => {
         ['properties.$browser', 'properties.$browser'],
     ])('extractDisplayLabel(%s) = %s', (input, expected) => {
         expect(extractDisplayLabel(input)).toBe(expected)
+    })
+
+    it.each([
+        // Bare safe identifiers are returned unchanged
+        ['timestamp', 'timestamp'],
+        ['event', 'event'],
+        ['_under_score', '_under_score'],
+        ['$dollar', '$dollar'],
+        ['col1', 'col1'],
+        // Already-backticked keys are left alone
+        ['`Already Quoted`', '`Already Quoted`'],
+        // Anything else gets backticked so HogQL can parse it as a single identifier
+        ['Absolute Time', '`Absolute Time`'],
+        ['has space', '`has space`'],
+        ['weird-name', '`weird-name`'],
+        ['properties.$browser', '`properties.$browser`'],
+        // Embedded backticks are doubled
+        ['weird`name', '`weird``name`'],
+    ])('quoteOrderByKey(%s) = %s', (input, expected) => {
+        expect(quoteOrderByKey(input)).toBe(expected)
     })
 
     it('removeExpressionComment', () => {
