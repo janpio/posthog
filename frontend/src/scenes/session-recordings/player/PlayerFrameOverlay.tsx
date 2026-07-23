@@ -15,6 +15,7 @@ import { SessionPlayerState } from '~/types'
 
 import { CommentOnRecordingButton } from './commenting/CommentOnRecordingButton'
 import { ClipRecording } from './controller/ClipRecording'
+import { CopyPermalink } from './controller/CopyPermalink'
 import { Screenshot } from './controller/PlayerController'
 import { SessionRecordingPlayerMode } from './sessionRecordingPlayerLogic'
 
@@ -64,6 +65,7 @@ const PlayerFrameOverlayActions = (): JSX.Element | null => {
             />
             <Screenshot className="text-2xl text-white" data-attr="replay-overlay-screenshot" />
             <ClipRecording className="text-2xl text-white" data-attr="replay-overlay-clip" />
+            <CopyPermalink className="text-2xl text-white" data-attr="replay-overlay-permalink" />
         </div>
     )
 }
